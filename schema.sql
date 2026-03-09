@@ -1,4 +1,4 @@
--- מבנה הטבלה לניתוח
+
 CREATE TABLE device_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     device_id VARCHAR(50) NOT NULL,
@@ -9,16 +9,14 @@ CREATE TABLE device_logs (
     status VARCHAR(20)
 );
 
--- הערה למועמד:
--- עליך לכתוב שאילתה השולפת חריגות (ממוצע 24 שעות מול ממוצע היסטורי)
--- ולהסביר את אסטרטגיית האינדוקס שלך עבור טבלה עם 10 מיליון רשומות.
+CREATE INDEX idx_device_timestamp_current
+ON device_logs (device_id, `timestamp`, `current`);
 
-
-
-
+CREATE INDEX idx_timestamp_device_current
+ON device_logs (`timestamp`, device_id, `current`);
 
 -- =====================
--- PART 1: FAKE DATA
+--  FAKE DATA
 -- =====================
 
 -- Clean slate (optional — remove if running against existing data)
@@ -185,11 +183,7 @@ INSERT INTO device_logs (device_id, `timestamp`, voltage, `current`, temperature
 ('DEV-006', NOW() - INTERVAL 1 HOUR, 220.0, 5.5, 33.0, 'active');
 
 
--- =====================
--- PART 2: ANOMALY DETECTION QUERY
--- =====================
--- Returns device_id where avg current in last 24h >= 1.2 * overall historical avg
--- Expected results: DEV-001, DEV-002, DEV-005
+
 
 SELECT h.device_id
 FROM (
@@ -208,7 +202,5 @@ JOIN (
 WHERE r.last_24h_avg >= 1.2 * h.historical_avg;
 
 
--- =====================
--- PART 3: INDEXING STRATEGY (for 10M rows)
--- =====================
+
 
