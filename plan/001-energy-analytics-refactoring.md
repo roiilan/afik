@@ -77,7 +77,7 @@ DeviceId="B", TotalPower=330, ReadingsCount=1, AverageEfficiency=9.05
 
 - [x] **3. Magic number `0.85`**: Extracted to `private const double EfficiencyCoefficient = 0.85`.
 
-- [x] **4. Division by zero risk**: Skip readings where `Temperature + 1 == 0`. Skipped readings are exposed via `IReadOnlyList<SkippedReading> LastSkippedReadings` property on the service (non-breaking - return type unchanged). `LastSkippedReadings` is reset on every call, so stale data from a previous call never leaks through.
+- [x] **4. Division by zero / near-zero denominator**: Replaced exact `== 0` check with `Math.Abs(item.Temperature + 1) < MinDenominatorThreshold` (`1e-6`). Skipped readings exposed via `IReadOnlyList<SkippedReading> LastSkippedReadings` on the service (non-breaking). `LastSkippedReadings` resets on every call.
 
 ### Performance Issues
 
@@ -93,7 +93,17 @@ DeviceId="B", TotalPower=330, ReadingsCount=1, AverageEfficiency=9.05
 
 - [x] **9. Naming**: Internal variables are clear and descriptive. No change needed.
 
-- [x] **10. Immutability**: `AverageEfficiency` is now a computed read-only property. `EfficiencySum` is internal for accumulation.
+- [x] **10. Immutability**: `AverageEfficiency` is now a computed read-only property. `EfficiencySum` has a `private set` — cannot be written from outside `DeviceResult`. Updates go through `AccumulateReading(power, efficiency)` method.
+
+### Additional Fixes (from Reflection Round — Points 2–5)
+
+- [x] **11. Null item in list**: A null element inside the `data` list would throw `NullReferenceException`. Added explicit null-item check at the top of the loop. Skipped with reason `"Reading is null"`, `DeviceId` set to `string.Empty`.
+
+- [x] **12. DeviceId null/empty/whitespace**: A null `DeviceId` would crash `Dictionary.TryGetValue` (`ArgumentNullException`). An empty or whitespace `DeviceId` would silently group all such readings under a meaningless key. Added `string.IsNullOrWhiteSpace` check. Skipped with reason `"DeviceId is null, empty, or whitespace"`.
+
+- [x] **13. NaN/Infinity in numeric fields**: `double.NaN` or `double.Infinity` in `Voltage`, `Current`, or `Temperature` would silently corrupt `TotalPower` and `EfficiencySum` without throwing. NaN also bypasses the denominator guard (`NaN == 0` is false). Added `double.IsFinite()` check on all three fields. Skipped with reason describing which fields are affected.
+
+- [x] **14. Near-zero denominator guard**: Upgraded from exact `== 0` to `Math.Abs(item.Temperature + 1) < MinDenominatorThreshold` (`1e-6`). Prevents extreme efficiency values from near-zero denominators, not just exact zero.
 
 ---
 
@@ -323,17 +333,132 @@ All cases traced manually against the final implementation.
 
 ---
 
+## Part 4: Additional Fixes — Reflection Round
+
+Fixes implemented based on the reflection review (Points 2–5). All are skip-and-track; the method signature and return type remain unchanged.
+
+### Guard order in the loop (top to bottom)
+
+Each reading now passes through 4 guards before any calculation is attempted:
+
+```
+1. item == null                                → skip, DeviceId=""
+2. string.IsNullOrWhiteSpace(item.DeviceId)   → skip
+3. !double.IsFinite(Voltage/Current/Temp)     → skip
+4. Math.Abs(Temperature + 1) <= 1e-6          → skip
+   ↓
+   Safe to calculate: powerUsage, efficiencyFactor
+```
+
+### Constants added
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `MinDenominatorThreshold` | `1e-6` | Near-zero denominator guard threshold |
+
+### Edge cases now covered
+
+| Scenario | Guard | Reason in SkippedReading |
+|----------|-------|--------------------------|
+| `null` element in list | Guard 1 | `"Reading is null"` |
+| DeviceId is `null` | Guard 2 | `"DeviceId is null, empty, or whitespace"` |
+| DeviceId is `""` or `" "` | Guard 2 | `"DeviceId is null, empty, or whitespace"` |
+| `Voltage = double.NaN` | Guard 3 | `"One or more numeric fields ... contain NaN or Infinity"` |
+| `Temperature = double.PositiveInfinity` | Guard 3 | same |
+| `Temperature = -1.0` (exact) | Guard 4 | `"Temperature + 1 is near zero ..."` |
+| `Temperature = -1.0000005` (near -1) | Guard 4 | `"Temperature + 1 is near zero ..."` |
+| `Temperature = -0.999999` (denominator = 1e-6, at boundary) | Guard 4 | `"Temperature + 1 is near zero ..."` — skipped because guard uses `<=` |
+| `Temperature = -0.99` (safe negative) | passes all guards | processed normally |
+
+### What did NOT change
+
+- Method signature — unchanged
+- Return type — unchanged
+- Business logic for valid readings — unchanged
+- All classes remain in one file
+
+---
+
 ## HISTORY
 
 > Copilot: Do not use this section as implementation instructions.
 > This section is for historical prompt documentation only.
 
 <!--
-- User requested to create plan1: analyze EnergyAnalyticsService.cs, explain what it does with examples, then perform a full refactoring.
-- User asked for a checklist of refactoring items.
-- User answered all 4 questions: use EfficiencyCoefficient, keep all in one file, skip readings where Temperature+1==0 and track them, use foreach+Dictionary.
-- User approved implementation: "implement optimal refactoring".
-- All 10 checklist items implemented (8 done, 1 skipped per user choice, 1 no change needed).
-- User requested: revert method signature to List<DeviceResult> (no breaking change). Track skipped readings via service property LastSkippedReadings instead.
-- User requested: verify with fake data + edge cases and document in plan. 9 cases traced manually — all pass.
+## Session Timeline
+
+### Step 1 — Task definition
+User asked to analyze `EnergyAnalyticsService.cs`: explain what it does with examples,
+then produce a full refactoring with a checklist. Analysis and checklist (10 items) were
+written in Parts 1 and 2 of this plan.
+
+### Step 2 — Design questions before implementation
+Four questions were raised before writing any code:
+  (Q1) What name should replace the magic number `0.85`?
+  (Q2) Should model classes be split into separate files?
+  (Q3) How should an invalid temperature (division by zero) be handled?
+  (Q4) Should aggregation use LINQ GroupBy or foreach + Dictionary?
+
+### Step 3 — User answers
+  (A1) Use `EfficiencyCoefficient`. Business meaning of 0.85 was not provided.
+  (A2) Keep all classes in one file.
+  (A3) Negative temperatures are valid. Only skip a reading when `Temperature + 1 == 0`
+       exactly. Skipped readings must be tracked and visible — not silently lost.
+  (A4) Use foreach + Dictionary (imperative, more readable).
+
+### Step 4 — First implementation
+All 10 checklist items were implemented. The method return type was initially changed to
+`EfficiencyResult` (a new wrapper class) in order to return both device results and
+skipped readings from the same method call.
+
+### Step 5 — API break reverted
+User rejected the return type change: it was a breaking API change.
+The method signature was reverted to `List<DeviceResult>`.
+Skipped readings are now exposed via a `LastSkippedReadings` property on the service
+instance, populated and reset after every call.
+
+### Step 6 — Verification with fake data
+9 edge cases were traced manually against the code (see Part 3):
+  - Correct running average across 3 readings (old formula was wrong)
+  - Temperature = -1 skipped correctly
+  - Negative temperature (not -1) processed normally
+  - Empty input, null input, mixed batch, all-skipped batch, zero power, multiple calls
+All 9 cases passed.
+
+### Step 7 — Reflection review (5 concerns)
+User asked for an explicit agree/disagree analysis on 5 concerns before any further changes:
+  (Point 2) Null items inside the list are not handled — would crash.
+  (Point 3) Null/empty/whitespace DeviceId is not validated — null would crash Dictionary.
+  (Point 4) NaN or Infinity in numeric fields would silently corrupt accumulators.
+  (Point 5) Exact `== 0` denominator check should be a near-zero epsilon guard.
+  (Point 6) Scope should stay limited to correctness, performance, and safe input handling.
+All 5 points were agreed with. An open question remained: what epsilon value to use for Point 5.
+
+### Step 8 — Epsilon decision
+User was asked to choose an epsilon for the near-zero denominator guard (4 options presented).
+User chose Option 2: `1e-6`, named `MinDenominatorThreshold`.
+
+### Step 9 — Second implementation (reflection fixes)
+4 new guards added in the per-reading loop, in this order:
+  (Guard 1) `item == null` → skip
+  (Guard 2) `string.IsNullOrWhiteSpace(item.DeviceId)` → skip
+  (Guard 3) `!double.IsFinite(Voltage/Current/Temperature)` → skip
+  (Guard 4) `Math.Abs(Temperature + 1) < 1e-6` → skip
+Checklist updated with items 11–14. Part 4 added with full guard documentation.
+Method signature and return type remain unchanged.
+
+### Step 10 — Second opinion review (Plan 002)
+Plan 002 reviewed the refactored code against the original. 12 changes were confirmed correct.
+One critical issue found: `EfficiencySum` had a public setter — internal accumulator was exposed
+as mutable, allowing callers to silently corrupt `AverageEfficiency`.
+One warning: `LastSkippedReadings` is instance state, not thread-safe for singleton DI usage.
+One doc error: Plan 001 Part 4 table described T=-0.999999 as "skipped" — was wrong under `<` guard.
+
+### Step 11 — Fixes from Plan 002 (user approved: STEP APPROVED)
+3 fixes applied:
+  (1) `EfficiencySum` → `{ get; private set; }`. Constructor and `AccumulateReading` method
+      added to `DeviceResult`. Service uses these instead of direct object initializer.
+  (2) Denominator guard changed from `<` to `<=`. T=-0.999999 is now correctly skipped.
+      Plan 001 Part 4 guard line and table row updated accordingly.
+  (3) XML `<remarks>` added to `EnergyAnalyticsService` warning against singleton DI registration.
 -->
