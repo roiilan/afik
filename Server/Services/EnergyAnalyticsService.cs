@@ -6,9 +6,8 @@ using System.Linq;
 /// Calculates per-device energy efficiency metrics from raw sensor readings.
 /// </summary>
 /// <remarks>
-/// <b>Thread safety:</b> This service holds instance state in <see cref="LastSkippedReadings"/>.
-/// It must NOT be registered as a singleton in a DI container. Use transient or scoped lifetime only.
-/// Concurrent calls on the same instance will race on <see cref="LastSkippedReadings"/>.
+/// This service is stateless — all results (including skipped readings) are returned
+/// in the <see cref="EfficiencyResult"/> wrapper. Safe for any DI lifetime (singleton, scoped, transient).
 /// </remarks>
 public class EnergyAnalyticsService
 {
@@ -19,20 +18,12 @@ public class EnergyAnalyticsService
     private const double MinDenominatorThreshold = 1e-6;
 
     /// <summary>
-    /// Readings skipped during the most recent call to <see cref="CalculateEfficiencyMetrics"/>.
-    /// A reading is skipped when it is null, has an invalid DeviceId, contains non-finite numeric
-    /// values, or has a denominator (Temperature + 1) at or below <see cref="MinDenominatorThreshold"/>.
-    /// Populated and reset on every call; never carries over from a previous call.
-    /// </summary>
-    public IReadOnlyList<SkippedReading> LastSkippedReadings { get; private set; } = Array.Empty<SkippedReading>();
-
-    /// <summary>
     /// Calculates per-device efficiency metrics from raw energy readings.
-    /// Invalid or unsafe readings are skipped and exposed via <see cref="LastSkippedReadings"/> after the call.
+    /// Invalid or unsafe readings are skipped and included in <see cref="EfficiencyResult.SkippedReadings"/>.
     /// </summary>
  
  
-    public List<DeviceResult> CalculateEfficiencyMetrics(List<RawData> data)
+    public EfficiencyResult CalculateEfficiencyMetrics(List<RawData> data)
     {
         if (data == null)
             throw new ArgumentNullException(nameof(data));
@@ -95,8 +86,11 @@ public class EnergyAnalyticsService
             }
         }
 
-        LastSkippedReadings = skippedReadings;
-        return deviceMap.Values.ToList();
+        return new EfficiencyResult
+        {
+            DeviceResults = deviceMap.Values.ToList(),
+            SkippedReadings = skippedReadings
+        };
     }
 }
 
@@ -141,6 +135,12 @@ public class DeviceResult
         ReadingsCount++;
         EfficiencySum += efficiency;
     }
+}
+
+public class EfficiencyResult
+{
+    public List<DeviceResult> DeviceResults { get; set; } = new();
+    public List<SkippedReading> SkippedReadings { get; set; } = new();
 }
 
 public class SkippedReading

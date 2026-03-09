@@ -19,29 +19,6 @@ var data = new List<RawData>
 };
 
 var service = new EnergyAnalyticsService();
-var results = service.CalculateEfficiencyMetrics(data);
+var result = service.CalculateEfficiencyMetrics(data);
 
-Console.WriteLine("=== Device Results ===");
-foreach (var r in results)
-{
-    Console.WriteLine($"  Device:            {r.DeviceId}");
-    Console.WriteLine($"  Readings:          {r.ReadingsCount}");
-    Console.WriteLine($"  Total Power:       {r.TotalPower:F4} W");
-    Console.WriteLine($"  Efficiency Sum:    {r.EfficiencySum:F4}");
-    Console.WriteLine($"  Avg Efficiency:    {r.AverageEfficiency:F4}");
-    Console.WriteLine();
-}
-
-Console.WriteLine("=== Skipped Readings ===");
-if (service.LastSkippedReadings.Count == 0)
-{
-    Console.WriteLine("  (none)");
-}
-else
-{
-    foreach (var s in service.LastSkippedReadings)
-    {
-        var id = string.IsNullOrWhiteSpace(s.DeviceId) ? "(empty)" : s.DeviceId;
-        Console.WriteLine($"  [{id}] {s.Reason}");
-    }
-}
+Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
