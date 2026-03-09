@@ -1,4 +1,29 @@
--- מבנה הטבלה לניתוח
+# Part 1: Code Refactoring and AI-Assisted Workflow
+
+In the `Server/Services` folder, there are two files:
+
+- [OriginalEnergyAnalyticsService.cs](./Server/Services/OriginalEnergyAnalyticsService.cs) — the original code I received.
+-  [EnergyAnalyticsService.cs](./Server/Services/EnergyAnalyticsService.cs) — my refactored version of the code.
+
+I performed the refactoring with the help of both **Copilot Agent** and **ChatGPT**.
+
+I created [ai-prompts.md](./ai-prompts.md) file. Its purpose is to support any AI agent that is not Copilot Agent. It directs the agent to the 
+[copilot-instructions](./.github/copilot-instructions.md) file, which Copilot can work with effectively.
+
+Inside that file, I provided instructions describing how I want to work with the AI. The main idea was to break the task into small steps called **PLANs**.
+Based on my prompt, Copilot helped me formulate each PLAN. To make the prompt more precise, Copilot was asked to ask me clarifying questions whenever needed so it could better focus on the task, and then wait for my response. It also generated implementation steps for each PLAN and waited for my approval before proceeding.
+
+In addition, for each PLAN I tried to include a summary of my prompts and interactions with Copilot. This appears under **HISTORY**. In parallel, I also used Copilot directly or made manual corrections, so not every single action appears there.
+
+The refactoring process, including the bugs that were identified, can be seen under **PLAN 1–3**. All PLAN files are located inside the `PLAN` folder in the project root.
+
+-------------------------------------------------------------------------------
+
+# Part 2: Data and Broader Thinking (Database - MySQL)
+
+## Table Structure for Analysis
+
+```sql
 CREATE TABLE device_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     device_id VARCHAR(50) NOT NULL,
@@ -8,32 +33,83 @@ CREATE TABLE device_logs (
     temperature DOUBLE,
     status VARCHAR(20)
 );
+```
 
--- הערה למועמד:
--- עליך לכתוב שאילתה השולפת חריגות (ממוצע 24 שעות מול ממוצע היסטורי)
--- ולהסביר את אסטרטגיית האינדוקס שלך עבור טבלה עם 10 מיליון רשומות.
+## Task
 
+Given the `device_logs` table containing millions of rows:
 
+**Write an SQL query that returns all `device_id` values where the average current in the last 24 hours was at least 20% higher than the overall historical average of the same device in the table.**
 
+## Answer
 
+```sql
+SELECT h.device_id
+FROM (
+    SELECT device_id, AVG(`current`) AS historical_avg
+    FROM device_logs
+    WHERE `current` IS NOT NULL
+    GROUP BY device_id
+) h
+JOIN (
+    SELECT device_id, AVG(`current`) AS last_24h_avg
+    FROM device_logs
+    WHERE `current` IS NOT NULL
+      AND `timestamp` >= NOW() - INTERVAL 24 HOUR
+    GROUP BY device_id
+) r ON r.device_id = h.device_id
+WHERE r.last_24h_avg >= 1.2 * h.historical_avg;
+```
 
--- =====================
--- PART 1: FAKE DATA
--- =====================
+## Analysis Question
 
--- Clean slate (optional — remove if running against existing data)
-DELETE FROM device_logs;
+**How would you build indexes on this table to ensure the query runs in minimum time?**
 
--- 6 devices:
---   DEV-001: POSITIVE  — last 24h avg current ~15.0, historical avg ~10.0 (50% above)
---   DEV-002: POSITIVE  — last 24h avg current ~12.0, historical avg ~8.0  (50% above)
---   DEV-003: NEGATIVE  — last 24h avg current ~5.0,  historical avg ~5.0  (0% above)
---   DEV-004: NEGATIVE  — last 24h avg current ~4.5,  historical avg ~5.0  (below)
---   DEV-005: BORDERLINE — last 24h avg current ~6.7, overall avg ~5.57 (~20.3%)
---   DEV-006: NEGATIVE  — last 24h avg current ~5.5,  historical avg ~5.0  (10%, under threshold)
+## Answer
 
-INSERT INTO device_logs (device_id, `timestamp`, voltage, `current`, temperature, status) VALUES
--- -------------------------------------------------------
+To improve the execution time of the query on the `device_logs` table, I would create composite indexes that support both grouping by `device_id` and filtering by the last 24 hours.
+
+The first index I would create is:
+
+```sql
+CREATE INDEX idx_device_timestamp_current
+ON device_logs (device_id, `timestamp`, `current`);
+```
+
+This index is useful because the query performs a `GROUP BY` on `device_id`, uses `timestamp` to calculate the average current over the last 24 hours, and reads the `current` column to compute the averages. As a result, MySQL can access the required data more efficiently and, in some cases, may even be able to satisfy the query directly from the index without reading the full table rows.
+
+In addition, since the query includes a time-based condition such as:
+
+```sql
+timestamp >= NOW() - INTERVAL 24 HOUR
+```
+
+I would also consider adding a second index:
+
+```sql
+CREATE INDEX idx_timestamp_device_current
+ON device_logs (`timestamp`, device_id, `current`);
+```
+
+This index is especially helpful when MySQL chooses to first filter the rows from the last 24 hours and then group them by `device_id`.
+
+However, it is important to note that even with good indexes, the query still needs to calculate the full historical average for each device across all rows in the table. Therefore, indexes alone will not completely eliminate wide scans of the data. If this query runs frequently in production on a very large table, the most efficient solution would be to maintain a summary table with pre-aggregated statistics for each `device_id`, instead of recalculating them from all 10 million rows every time.
+
+In conclusion, I would recommend these two indexes:
+
+```sql
+CREATE INDEX idx_device_timestamp_current
+ON device_logs (device_id, `timestamp`, `current`);
+
+CREATE INDEX idx_timestamp_device_current
+ON device_logs (`timestamp`, device_id, `current`);
+```
+
+The first index better supports grouping by device, and the second better supports filtering by time range. Together, they provide a solid optimization strategy for this query, although for best performance at scale I would also consider using a pre-aggregated summary table.
+
+## Fake Data
+
+```sql
 -- DEV-001: POSITIVE CASE (historical avg ~10, last 24h ~15)
 -- Historical data (older than 24h)
 -- -------------------------------------------------------
@@ -183,32 +259,14 @@ INSERT INTO device_logs (device_id, `timestamp`, voltage, `current`, temperature
 ('DEV-006', NOW() - INTERVAL 8 HOUR, 220.0, 5.5, 33.0, 'active'),
 ('DEV-006', NOW() - INTERVAL 4 HOUR, 222.0, 5.5, 34.0, 'active'),
 ('DEV-006', NOW() - INTERVAL 1 HOUR, 220.0, 5.5, 33.0, 'active');
+```
 
+## Expected Result
 
--- =====================
--- PART 2: ANOMALY DETECTION QUERY
--- =====================
--- Returns device_id where avg current in last 24h >= 1.2 * overall historical avg
--- Expected results: DEV-001, DEV-002, DEV-005
-
-SELECT h.device_id
-FROM (
-    SELECT device_id, AVG(`current`) AS historical_avg
-    FROM device_logs
-    WHERE `current` IS NOT NULL
-    GROUP BY device_id
-) h
-JOIN (
-    SELECT device_id, AVG(`current`) AS last_24h_avg
-    FROM device_logs
-    WHERE `current` IS NOT NULL
-    AND `timestamp` >= NOW() - INTERVAL 24 HOUR
-    GROUP BY device_id
-) r ON r.device_id = h.device_id
-WHERE r.last_24h_avg >= 1.2 * h.historical_avg;
-
-
--- =====================
--- PART 3: INDEXING STRATEGY (for 10M rows)
--- =====================
-
+```text
+device_id |
++-----------+
+| DEV-001   |
+| DEV-002   |
+| DEV-005   |
+```
