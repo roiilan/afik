@@ -17,6 +17,18 @@ In addition, for each PLAN I tried to include a summary of my prompts and intera
 
 The refactoring process, including the bugs that were identified, can be seen under **PLAN 1–3**. All PLAN files are located inside the `PLAN` folder in the project root.
 
+## How to Run 
+
+The [Program.cs](./Server/Program.cs) file contains a small console program that sends fake data to the refactored `CalculateEfficiencyMetrics` method and prints the result as formatted JSON.
+
+To run it, open a terminal in the project root and execute:
+
+```bash
+dotnet run --project Server
+```
+
+The program creates a list of `RawData` entries that cover various edge cases (null entries, empty device IDs, `NaN`/`Infinity` values, near-zero denominators, and valid readings), passes them to `CalculateEfficiencyMetrics`, and outputs the `EfficiencyResult` object serialized as indented JSON.
+
 -------------------------------------------------------------------------------
 
 # Part 2: Data and Broader Thinking (Database - MySQL)
