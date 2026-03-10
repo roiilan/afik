@@ -50,3 +50,34 @@
   color: var(--clr-text-muted);
   font-size: var(--fs-md);
 }
+
+/* AI Insight cell */
+
+.ai-insight-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 65px;
+  padding: var(--space-xs) 0;
+}
+
+.ag-header-cell-center .ag-header-cell-label {
+  justify-content: center;
+}
+
+.ai-insight-btn {
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  padding: 0.35em 0.75em;
+}
+
+.ai-insight-spinner {
+  color: var(--clr-accent);
+  animation: spin 2.5s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

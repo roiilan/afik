@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { AgGridReact } from 'ag-grid-react'
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community'
 import exceptionalDevices from '../data/exceptionalDevices'
+import AiInsightCell from './AiInsightCell'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -33,7 +34,17 @@ function Dashboard() {
     { field: 'voltage', headerName: 'Voltage', width: 120 },
     { field: 'current', headerName: 'Current', width: 120 },
     { field: 'temperature', headerName: 'Temperature', width: 140 },
-    { field: 'status', headerName: 'Status', width: 120 }
+    { field: 'status', headerName: 'Status', width: 120 },
+    {
+      headerName: 'AI Insight',
+      cellRenderer: AiInsightCell,
+      minWidth: 200,
+      flex: 1,
+      autoHeight: true,
+      sortable: false,
+      resizable: false,
+      headerClass: 'ag-header-cell-center'
+    }
   ], [])
 
   const defaultColDef = useMemo(() => ({
@@ -72,6 +83,7 @@ function Dashboard() {
             rowData={exceptionalDevices}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
+            rowHeight={65}
             overlayNoRowsTemplate="No exceptional devices found"
           />
         </div>
