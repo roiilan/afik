@@ -13,7 +13,7 @@ public class EnergyAnalyticsService
 {
     private const double EfficiencyCoefficient = 0.85;
 
-    // Temperature + 1 values at or below this threshold are treated as near-zero and skipped
+    // adjustedTemperature values at or below this threshold are treated as near-zero and skipped
     // to prevent division by zero or extreme efficiency values from near-zero denominators.
     private const double MinDenominatorThreshold = 1e-6;
 
@@ -63,18 +63,20 @@ public class EnergyAnalyticsService
                 continue;
             }
 
-            if (Math.Abs(item.Temperature + 1) <= MinDenominatorThreshold)
+            double adjustedTemperature = item.Temperature + 1;
+
+            if (Math.Abs(adjustedTemperature) <= MinDenominatorThreshold)
             {
                 skippedReadings.Add(new SkippedReading
                 {
                     DeviceId = item.DeviceId,
-                    Reason = "Temperature + 1 is near zero (at or below MinDenominatorThreshold), which would cause division by zero or extreme efficiency values"
+                    Reason = "adjustedTemperature is near zero (at or below MinDenominatorThreshold), which would cause division by zero or extreme efficiency values"
                 });
                 continue;
             }
 
             double powerUsage = item.Voltage * item.Current;
-            double efficiencyFactor = (powerUsage * EfficiencyCoefficient) / (item.Temperature + 1);
+            double efficiencyFactor = (powerUsage * EfficiencyCoefficient) / adjustedTemperature;
 
             if (deviceMap.TryGetValue(item.DeviceId, out var existingDevice))
             {
