@@ -76,6 +76,16 @@
   animation: spin 2.5s linear infinite;
 }
 
+.ai-insight-text {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+  font-size: var(--fs-sm);
+  color: var(--clr-text-primary);
+  text-align: start;
+  padding: var(--space-xs) var(--space-sm);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

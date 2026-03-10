@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { fetchAiInsight } from '../services/aiInsightService'
 
 // Hourglass SVG icon for loading state
 function HourglassSpinner() {
@@ -22,17 +23,34 @@ function HourglassSpinner() {
   )
 }
 
-function AiInsightCell() {
+function AiInsightCell({ data }) {
   const [status, setStatus] = useState('idle')
+  const [insight, setInsight] = useState('')
 
-  function onGenerateClick() {
+  async function onGenerateClick() {
     setStatus('loading')
+
+    try {
+      const result = await fetchAiInsight(data)
+      setInsight(result)
+      setStatus('done')
+    } catch {
+      setStatus('idle')
+    }
   }
 
   if (status === 'loading') {
     return (
       <div className="ai-insight-cell">
         <HourglassSpinner />
+      </div>
+    )
+  }
+
+  if (status === 'done') {
+    return (
+      <div className="ai-insight-cell ai-insight-text">
+        {insight}
       </div>
     )
   }
