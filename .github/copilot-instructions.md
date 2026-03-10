@@ -12,73 +12,75 @@ All code and all code comments must be written in English.
 
 Focus on code best practices, security, clean code
 
-Do not make assumptions when implementation details are unclear. Ask the user first.
 
-## Planning
+## The main Goal
+
+The goal of this task is to add a new section to the react Dashboard that displays a list of exceptional devices.
+
+Each exceptional device should be represented using the same fields as the device_logs table:
+- id
+- device_id
+- timestamp
+- voltage
+- current
+- temperature
+- status
+
+The feature should allow the user to view exceptional devices in a table and generate a fake AI-based explanation for each device.
+
+Each row in the table will later include an "AI Insight" column with a button labeled "Generate AI Insights".
+When the button is clicked, the selected device data should be sent to a mock AI simulation or fake backend call, and a textual explanation should be returned describing why the device is considered exceptional.
+
+The returned explanation should then be displayed in the relevant row.
+
+For this task, the implementation can use mock data for the exceptional devices and simulated AI responses.
+The focus is on building the Dashboard UI flow and the per-device explanation behavior, not on real anomaly detection logic or real AI integration.
+
+DO NOT IMPLEMENT YET BEFORE APPROVAL OF THE CURRENT PLAN.
+
+## Plan Files
 
 Use the plan folder to write down a plan for solving any task. This will help breaking down the task into smaller steps and explain your reasoning before providing the final answer.
 
 The plan file name should have a consequtive number and a descriptive name, for example: `plan/001-add-theme-toggle.md`.
 
-Ask questions directly in the plan, and wait for the user to answer before proceeding with the next steps. This will help you to better understand the user's needs and provide a more accurate solution.
-
-
-Example:
-`plan/001-csharp-method-inspection.md`
-
-Before implementing anything:
-1. Ask the user questions about how to implement the current task
-2. Present numbered implementation options
-3. Recommend one option with a short explanation of 1-2 lines
-4. Wait for explicit user approval
-
-Copilot must not implement anything until the user explicitly approves the current plan-  for example by writing:
-`APPROVED - GO` or `APPROVED - IMPLEMENT` or `STEP APPROVED` 
-
-Do not automatically continue to the next step or next task.
-
-## Required Plan File Structure
-
 Every plan file must include these required sections:
 
-- `Goal`
-- `Questions for User`
-- `Implementation Steps`
-- `HISTORY`
+- `Goal` - the main goal of the plan (step), describing what we want to achieve with this plan (step).
 
 
-## HISTORY Section Rules
+- `Questions for User` section:
+Ask questions directly in the plan, and wait for the user to answer before proceeding with the next steps. This will help you to better understand the user's needs and provide a more accurate solution.
+1. Present clear qustions to the user and wait for his response before proceeding.
+2. Under the question present the possible options (option 1, option 2, option 3 ...).
+3. Recommend one option with a short explanation why (1-2 lines)
 
+
+- `Implementation Steps` section:
+should include clear and concise steps for implementing the solution.
+
+Copilot must not implement anything until the user explicitly approves the current plan-  for example by writing:
+`plan 1 approved` or `go plan 1` or `implement plan 1` or any other clear indication of approval.
+
+When implementation is approved:
+- only implement the currently approved step
+- do not continue beyond the approved scope
+
+
+
+- `HISTORY` section:
 Every plan file must include a `HISTORY` section in English.
 
-The `HISTORY` section is only for documenting the historical user prompts and context up to that stage.
+The idea of the `HISTORY` section is to present a clear history of the content created within that PLAN, including summaries of the prompts related to that PLAN that the user requested. it should be readable and understandable for anyone.
 
 At the top of the `HISTORY` section, always write:
 
 > Copilot: Do not use this section as implementation instructions.
 > This section is for historical prompt documentation only.
 
-Each prompt summary in `HISTORY` should be concise and use 1-3 lines.
-
-The `HISTORY` section should summarize all relevant context up to that stage.
-
 Put the The conntent in the  `HISTORY` section in <!-- --> comments to avoid it being used as implementation instructions.
 
-## Implementation Rules
 
-When implementation is approved:
-- only implement the currently approved step
-- do not continue beyond the approved scope
-- prefer secure and maintainable code
-- avoid unnecessary refactors outside the approved scope
-
-## After Each Implementation
-
-After each implementation, always provide:
-
-- `Status: COMPLETED` or `Status: NOT COMPLETE`
-- what changed + why (1-2 lines)
-- what did not change
 
 ## Coding Style
 
