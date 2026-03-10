@@ -1,0 +1,52 @@
+/* Dashboard component styles */
+
+.dashboard {
+  padding-block: var(--space-md);
+}
+
+.dashboard-header {
+  margin-bottom: var(--space-lg);
+
+  & h1 {
+    color: var(--clr-text-primary);
+  }
+}
+
+.dashboard-card {
+  background-color: var(--clr-bg-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px var(--clr-shadow);
+  overflow: hidden;
+}
+
+.dashboard-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--clr-border);
+
+  & h2 {
+    color: var(--clr-text-primary);
+  }
+
+  & .device-count {
+    font-size: var(--fs-sm);
+    color: var(--clr-text-muted);
+  }
+}
+
+.dashboard-grid-wrapper {
+  height: 500px;
+  width: 100%;
+}
+
+.dashboard-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--clr-text-muted);
+  font-size: var(--fs-md);
+}
