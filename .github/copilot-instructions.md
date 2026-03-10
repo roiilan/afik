@@ -12,8 +12,10 @@ All code and all code comments must be written in English.
 
 Focus on code best practices, security, clean code
 
+The project react location is in the main root`react_proj/` folder.
 
 ## The main Goal
+<!-- prefer work in the react_proj/src/ folder, and avoid working in the public/ folder unless necessary. -->
 
 The goal of this task is to add a new section to the react Dashboard that displays a list of exceptional devices.
 
