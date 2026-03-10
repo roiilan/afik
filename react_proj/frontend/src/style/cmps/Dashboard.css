@@ -17,6 +17,7 @@
   border: 1px solid var(--clr-border);
   border-radius: var(--radius-lg);
   box-shadow: 0 2px 8px var(--clr-shadow);
+  padding: var(--space-md);
   overflow: hidden;
 }
 
@@ -83,6 +84,13 @@
   font-size: var(--fs-sm);
   color: var(--clr-text-primary);
   text-align: start;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.ai-insight-error {
+  font-size: var(--fs-sm);
+  color: #c0392b;
+  text-align: center;
   padding: var(--space-xs) var(--space-sm);
 }
 

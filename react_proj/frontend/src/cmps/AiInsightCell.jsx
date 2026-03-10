@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchAiInsight } from '../services/aiInsightService'
+
+const ERROR_DISPLAY_MS = 10000
 
 // Hourglass SVG icon for loading state
 function HourglassSpinner() {
@@ -26,6 +28,13 @@ function HourglassSpinner() {
 function AiInsightCell({ data }) {
   const [status, setStatus] = useState('idle')
   const [insight, setInsight] = useState('')
+  const errorTimerRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+    }
+  }, [])
 
   async function onGenerateClick() {
     setStatus('loading')
@@ -35,7 +44,10 @@ function AiInsightCell({ data }) {
       setInsight(result)
       setStatus('done')
     } catch {
-      setStatus('idle')
+      setStatus('error')
+      errorTimerRef.current = setTimeout(() => {
+        setStatus('idle')
+      }, ERROR_DISPLAY_MS)
     }
   }
 
@@ -51,6 +63,14 @@ function AiInsightCell({ data }) {
     return (
       <div className="ai-insight-cell ai-insight-text">
         {insight}
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="ai-insight-cell ai-insight-error">
+        Bad Connection. Please try again later
       </div>
     )
   }

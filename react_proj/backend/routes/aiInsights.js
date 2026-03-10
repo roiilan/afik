@@ -3,7 +3,7 @@ import { generateInsight } from '../services/generateInsight.js'
 
 const router = Router()
 
-const REQUIRED_FIELDS = ['id', 'device_id', 'timestamp', 'voltage', 'current', 'temperature', 'status']
+const REQUIRED_FIELDS = ['voltage', 'current', 'temperature', 'status']
 const NUMERIC_FIELDS = ['voltage', 'current', 'temperature']
 
 router.get('/', (req, res) => {

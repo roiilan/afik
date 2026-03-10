@@ -2,9 +2,6 @@ const BASE_URL = 'http://localhost:3000/api/ai-insight'
 
 export async function fetchAiInsight(device) {
   const params = new URLSearchParams({
-    id: device.id,
-    device_id: device.device_id,
-    timestamp: device.timestamp,
     voltage: device.voltage,
     current: device.current,
     temperature: device.temperature,

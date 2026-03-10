@@ -21,7 +21,7 @@ Since the task says to send **only the fields actually required by the rule logi
 
 ---
 
-### Q2: Error message display style - Option 2
+### Q2: Error message display style - Option 1
 
 When a request fails, the task says to optionally show a short inline error message like *"Failed to generate AI insight. Please try again."*
 
@@ -80,4 +80,8 @@ The backend runs on `http://localhost:3000`. Where should this URL be defined?
   1. Created `react_proj/frontend/src/services/aiInsightService.js` — fetch wrapper using URLSearchParams, sends all 7 fields.
   2. Updated `AiInsightCell.jsx` — component now accepts `{ data }` from AG Grid, calls the service on click, shows insight text on success, restores button on failure.
   3. Updated `Dashboard.css` — added `.ai-insight-text` class for multi-line wrapping and readable text inside the cell.
+- User changed Q2 answer from Option 2 to Option 1 (show inline error message). Requested: on failure, show error message for 10 seconds, then restore the button.
+- Implementation updated:
+  1. `AiInsightCell.jsx` — added `error` status state. On fetch failure, shows "Failed to generate AI insight. Please try again." for 10 seconds, then reverts to idle (button restored). Uses `useRef` + `useEffect` cleanup for the timer.
+  2. `Dashboard.css` — added `.ai-insight-error` class with red text styling.
 -->
