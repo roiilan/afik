@@ -34,7 +34,20 @@ function Dashboard() {
     { field: 'voltage', headerName: 'Voltage', width: 120 },
     { field: 'current', headerName: 'Current', width: 120 },
     { field: 'temperature', headerName: 'Temperature', width: 140 },
-    { field: 'status', headerName: 'Status', width: 120 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 120,
+      cellRenderer: (params) => {
+        const value = params.value
+        const lower = value?.toLowerCase()
+        const styled = ['critical', 'warning', 'error', 'offline']
+        const className = styled.includes(lower)
+          ? `status-badge status-${lower}`
+          : ''
+        return <span className={className}>{value}</span>
+      }
+    },
     {
       headerName: 'AI Insight',
       cellRenderer: AiInsightCell,

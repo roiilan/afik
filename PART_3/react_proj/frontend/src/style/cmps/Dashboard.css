@@ -52,6 +52,38 @@
   font-size: var(--fs-md);
 }
 
+/* Status badge */
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: capitalize;
+}
+
+.status-critical {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.status-warning {
+  background-color: #f39c12;
+  color: #fff;
+}
+
+.status-error {
+  background-color: #c0392b;
+  color: #fff;
+}
+
+.status-offline {
+  background-color: #95a5a6;
+  color: #fff;
+}
+
 /* AI Insight cell */
 
 .ai-insight-cell {
