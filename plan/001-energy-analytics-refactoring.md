@@ -389,8 +389,7 @@ Each reading now passes through 4 guards before any calculation is attempted:
 
 ### Step 1 — Task definition
 User asked to analyze `EnergyAnalyticsService.cs`: explain what it does with examples,
-then produce a full refactoring with a checklist. Analysis and checklist (10 items) were
-written in Parts 1 and 2 of this plan.
+then produce a full refactoring with a checklist. Analysis and checklist (10 items) were written in Parts 1 and 2 of this plan.
 
 ### Step 2 — Design questions before implementation
 Four questions were raised before writing any code:
