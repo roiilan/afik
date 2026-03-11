@@ -1,17 +1,16 @@
 # Part 2: Data and Broader Thinking (Database - MySQL)
 
-**See [schema.sql](./schema.sql)**
+**See the solution in [schema.sql](./schema.sql)**
 
 ## Task
 
-Given the `device_logs` table containing millions of rows:
+Given the `device_logs` table containing millions of rows.
 
-**Write an SQL query that returns all `device_id` values where the average current in the last 24 hours was at least 20% higher than the overall historical average of the same device in the table.**
+Write an SQL query that returns all `device_id` values where the average `current` in the last 24 hours was at least 20% higher than the overall historical average of the same device in the table.
 
-### Answer
+## Answer
 
-
-```sql
+~~~sql
 SELECT h.device_id
 FROM (
     SELECT device_id, AVG(`current`) AS historical_avg
@@ -27,67 +26,68 @@ JOIN (
     GROUP BY device_id
 ) r ON r.device_id = h.device_id
 WHERE r.last_24h_avg >= 1.2 * h.historical_avg;
-```
+~~~
+
+The query splits the problem into two separate calculations for each `device_id`:  
+the overall historical average, and the average over the last 24 hours. It then joins the two result sets by `device_id` and filters only the devices where the average current in the last 24 hours is at least 20% higher than the historical average.
+
+I added `current IS NOT NULL` to ensure the calculation is based only on valid values. Although `AVG()` ignores `NULL` values by default, filtering them explicitly makes the intent clearer and keeps the query clean.
 
 ## Analysis Question
 
-**How would you build indexes on this table to ensure the query runs in minimum time?**
+How would you build indexes on this table to ensure the query runs in minimum time?
 
-### Answer
-
+## Answer
 To improve the execution time of the query on the `device_logs` table, I would create composite indexes that support both grouping by `device_id` and filtering by the last 24 hours.
 
-The first index I would create is:
-
-```sql
+~~~sql
 CREATE INDEX idx_device_timestamp_current
 ON device_logs (device_id, `timestamp`, `current`);
-```
 
-This index is useful because the query performs a `GROUP BY` on `device_id`, uses `timestamp` to calculate the average current over the last 24 hours, and reads the `current` column to compute the averages. As a result, MySQL can access the required data more efficiently and, in some cases, may even be able to satisfy the query directly from the index without reading the full table rows.
+CREATE INDEX idx_timestamp_device_current
+ON device_logs (`timestamp`, device_id, `current`);
+~~~
 
-In addition, since the query includes a time-based condition such as:
+However, I would not assume in advance that both indexes must always be kept without checking the actual execution plan with `EXPLAIN`, because each index also has a storage cost and adds overhead to `INSERT` and `UPDATE` operations.
 
-```sql
+### The first index:
+
+~~~sql
+CREATE INDEX idx_device_timestamp_current
+ON device_logs (device_id, `timestamp`, `current`);
+~~~
+
+This index is useful because the query performs a `GROUP BY` on `device_id`, uses `timestamp` to filter the rows from the last 24 hours, and reads the `current` column to calculate the averages. In some cases, it may also allow MySQL to satisfy part of the query directly from the index without reading the full table rows.
+
+### The second index:
+
+~~~sql
+CREATE INDEX idx_timestamp_device_current
+ON device_logs (`timestamp`, device_id, `current`);
+~~~
+
+This index can be especially useful when MySQL chooses to first filter the rows from the last 24 hours and only then group them by `device_id`.
+Since the query includes a time-based condition such as:
+
+~~~sql
 timestamp >= NOW() - INTERVAL 24 HOUR
-```
+~~~
 
-I would also consider adding a second index:
-
-```sql
-CREATE INDEX idx_timestamp_device_current
-ON device_logs (`timestamp`, device_id, `current`);
-```
-
-This index is especially helpful when MySQL chooses to first filter the rows from the last 24 hours and then group them by `device_id`.
-
-However, it is important to note that even with good indexes, the query still needs to calculate the full historical average for each device across all rows in the table. Therefore, indexes alone will not completely eliminate wide scans of the data. If this query runs frequently in production on a very large table, the most efficient solution would be to maintain a summary table with pre-aggregated statistics for each `device_id`, instead of recalculating them from all 10 million rows every time.
-
-In conclusion, I would recommend these two indexes:
-
-```sql
-CREATE INDEX idx_device_timestamp_current
-ON device_logs (device_id, `timestamp`, `current`);
-
-CREATE INDEX idx_timestamp_device_current
-ON device_logs (`timestamp`, device_id, `current`);
-```
-
-The first index better supports grouping by device, and the second better supports filtering by time range. Together, they provide a solid optimization strategy for this query, although for best performance at scale I would also consider using a pre-aggregated summary table.
+this index may better support the time-range filtering part of the query.
 
 
 
 ## Run it online
-You can run it online in the link:
+
+You can run it online here:  
 https://onecompiler.com/mysql/44fuz9fjg
 
 ## Expected Result
 
-```text
+~~~text
 device_id |
 +-----------+
 | DEV-001   |
 | DEV-002   |
 | DEV-005   |
-```
-
+~~~
