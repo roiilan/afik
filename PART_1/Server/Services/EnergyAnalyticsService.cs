@@ -3,26 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Calculates per-device energy efficiency metrics from raw sensor readings.
+/// Aggregates energy readings per device and returns both valid results and skipped readings.
 /// </summary>
-/// <remarks>
-/// This service is stateless — all results (including skipped readings) are returned
-/// in the <see cref="EfficiencyResult"/> wrapper. Safe for any DI lifetime (singleton, scoped, transient).
-/// </remarks>
 public class EnergyAnalyticsService
 {
     private const double EfficiencyCoefficient = 0.85;
-
-    // adjustedTemperature values at or below this threshold are treated as near-zero and skipped
-    // to prevent division by zero or extreme efficiency values from near-zero denominators.
     private const double MinDenominatorThreshold = 1e-6;
 
     /// <summary>
-    /// Calculates per-device efficiency metrics from raw energy readings.
-    /// Invalid or unsafe readings are skipped and included in <see cref="EfficiencyResult.SkippedReadings"/>.
+    /// Groups valid readings by device, calculates totals and average efficiency,
+    /// and records invalid readings with the reason they were skipped.
     /// </summary>
- 
- 
     public EfficiencyResult CalculateEfficiencyMetrics(List<RawData> data)
     {
         if (data == null)
@@ -65,6 +56,7 @@ public class EnergyAnalyticsService
 
             double adjustedTemperature = item.Temperature + 1;
 
+            // Skip unsafe denominators before calculating efficiency.
             if (Math.Abs(adjustedTemperature) <= MinDenominatorThreshold)
             {
                 skippedReadings.Add(new SkippedReading
@@ -106,10 +98,9 @@ public class RawData
 
 public class DeviceResult
 {
-    // Parameterless constructor preserved for serialization compatibility.
+    // Kept for serializers that require a parameterless constructor.
     public DeviceResult() { }
 
-    /// <summary>Creates a new result for a device with its first reading.</summary>
     public DeviceResult(string deviceId, double initialPower, double initialEfficiency)
     {
         DeviceId = deviceId;
@@ -122,15 +113,11 @@ public class DeviceResult
     public double TotalPower { get; set; }
     public int ReadingsCount { get; set; }
 
-    /// <summary>
-    /// Internal accumulator used to compute <see cref="AverageEfficiency"/>.
-    /// Do not write to this property. It is exposed as read-only for diagnostic purposes only.
-    /// </summary>
+    // Used internally to calculate AverageEfficiency.
     public double EfficiencySum { get; private set; }
 
     public double AverageEfficiency => ReadingsCount > 0 ? EfficiencySum / ReadingsCount : 0;
 
-    /// <summary>Adds a reading to this device's accumulated totals.</summary>
     public void AccumulateReading(double power, double efficiency)
     {
         TotalPower += power;
