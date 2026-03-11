@@ -19,7 +19,7 @@ Focus on code best practices, security, clean code
 
 <!-- PART_2 - The main goal of this task is to write an SQL query that retrieves all device_id values for which the average current over the last 24 hours was at least 20% higher than that device’s overall historical average in the table. -->
 
-<!-- PART_3 - The goal of this task is to add a new section to the react Dashboard that displays a list of exceptional devices.
+PART_3 - The goal of this task is to add a new section to the react Dashboard that displays a list of exceptional devices.
 
 Each exceptional device should be represented using the same fields as the device_logs table:
 - id
@@ -38,7 +38,7 @@ When the button is clicked, the selected device data should be sent to a mock AI
 The returned explanation should then be displayed in the relevant row.
 
 For this task, the implementation can use mock data for the exceptional devices and simulated AI responses.
-The focus is on building the Dashboard UI flow and the per-device explanation behavior, not on real anomaly detection logic or real AI integration.  -->
+The focus is on building the Dashboard UI flow and the per-device explanation behavior, not on real anomaly detection logic or real AI integration. 
 
 DO NOT IMPLEMENT YET BEFORE APPROVAL OF THE CURRENT PLAN.
 
